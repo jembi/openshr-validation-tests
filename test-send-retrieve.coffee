@@ -32,25 +32,13 @@ sendRepositoryRequest = (action, conf, reqBody, callback) ->
     callback null, body
 
 
-runTest = (testName, test, validator, conf, file, callback) ->
-  process = (doc) ->
-    doc.replace /#{{docUniqueId}}/g, conf.docUniqueId
-      .replace /#{{subUniqueId}}/g, conf.subUniqueId
-      .replace /#{{sourcePatId}}/g, conf.sourcePatId
-      .replace /#{{messageId}}/g, conf.messageId
-      .replace /#{{repoUniqueId}}/g, conf.repoUniqueId
-      .replace /#{{firstName}}/g, conf.firstName
-      .replace /#{{lastName}}/g, conf.lastName
-
-  doc = fs.readFileSync(file).toString()
-  doc = process doc
-
-  test conf, doc, (err, response) ->
+runTest = (testName, test, validator, conf, originalProvideRequest, body, callback) ->
+  test conf, body, (err, response) ->
     if err
       console.log err
       callback false
 
-    else if not validator doc, response
+    else if not validator originalProvideRequest, response
       console.log "#{testName}:\x1b[31m Failed\x1b[0m"
       console.log "\nResponse received: #{response}\n"
       callback false
@@ -76,7 +64,7 @@ getXmlContent = (doc, name) ->
   return doc.substr 0, i + "#{name}>".length
 
 
-isPnRSuccessful = (originalRequest, response) ->
+isPnRSuccessful = (originalProvideRequest, response) ->
   try
     # strip out the SOAP envelope from MIME
     response = getXmlContent response, 'Envelope'
@@ -88,9 +76,9 @@ isPnRSuccessful = (originalRequest, response) ->
     console.log err
     return false
 
-isRetrieveSuccessful = (originalRequest, response) ->
+isRetrieveSuccessful = (originalProvideRequest, response) ->
   try
-    originalCda = getXmlContent originalRequest, 'ClinicalDocument'
+    originalCda = getXmlContent originalProvideRequest, 'ClinicalDocument'
     cda = getXmlContent response, 'ClinicalDocument'
 
     if cda isnt originalCda
@@ -131,6 +119,18 @@ do ->
 
   conf.auth = ops.auth
 
-  runTest 'Provide and Register Document Set.b', provideAndRegister, isPnRSuccessful, conf, 'pnr-validAphpSampleFullSections.xml', (success) ->
+  process = (doc) ->
+    doc.replace /#{{docUniqueId}}/g, conf.docUniqueId
+      .replace /#{{subUniqueId}}/g, conf.subUniqueId
+      .replace /#{{sourcePatId}}/g, conf.sourcePatId
+      .replace /#{{messageId}}/g, conf.messageId
+      .replace /#{{repoUniqueId}}/g, conf.repoUniqueId
+      .replace /#{{firstName}}/g, conf.firstName
+      .replace /#{{lastName}}/g, conf.lastName
+
+  provideDoc = process fs.readFileSync('pnr-validAphpSampleFullSections.xml').toString()
+  retrieveDoc = process fs.readFileSync('retrieveDocumentSetb.xml').toString()
+
+  runTest 'Provide and Register Document Set.b', provideAndRegister, isPnRSuccessful, conf, provideDoc, provideDoc, (success) ->
     if success
-      runTest 'Retrieve Document Set.b', retrieveDocumentSet, isRetrieveSuccessful, conf, 'retrieveDocumentSetb.xml', (success) ->
+      runTest 'Retrieve Document Set.b', retrieveDocumentSet, isRetrieveSuccessful, conf, provideDoc, retrieveDoc, (success) ->
