@@ -1,0 +1,19 @@
+{
+  "name": "openshr-validation-tests",
+  "version": "1.0.0",
+  "description": "Black-box validation tests for the OpenSHR",
+  "author": "Jembi Health Systems",
+  "license": "MPL-2.0",
+  "dependencies": {
+    "coffee-script": "^1.9.3",
+    "node-eden": "^0.0.3",
+    "request": "^2.58.0",
+    "uuid": "^2.0.1",
+    "xmldom": "^0.1.16",
+    "xpath": "^0.0.9"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "./node_modules/coffee-script/bin/coffee test-send-retrieve.coffee"
+  }
+}
