@@ -8,6 +8,7 @@
     "coffee-script": "^1.9.3",
     "node-eden": "^0.0.3",
     "request": "^2.58.0",
+    "stdio": "~0.2.2",
     "uuid": "^2.0.1",
     "xmldom": "^0.1.16",
     "xpath": "^0.0.9"
