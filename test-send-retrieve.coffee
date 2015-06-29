@@ -76,7 +76,7 @@ getXmlContent = (doc, name) ->
   return doc.substr 0, i + "#{name}>".length
 
 
-isPnRSuccessful = (response) ->
+isPnRSuccessful = (originalRequest, response) ->
   try
     # strip out the SOAP envelope from MIME
     response = getXmlContent response, 'Envelope'
