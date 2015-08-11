@@ -5,6 +5,8 @@ stdio = require 'stdio'
 xpath = require 'xpath'
 dom = require('xmldom').DOMParser
 eden = require 'node-eden'
+oidgen = require 'oidgen'
+net = require 'net'
 
 
 actionPNR = 'urn:ihe:iti:2007:ProvideAndRegisterDocumentSet-b'
@@ -12,6 +14,24 @@ actionRetrieve = 'urn:ihe:iti:2007:RetrieveDocumentSet'
 
 defaultRepositoryUniqueId = '1.19.6.24.109.42.1.5.1'
 
+mllpStart = new Buffer [0x0B]
+mllpEnd = new Buffer [0x1C, 0x0D]
+
+sendRegistyHL7 = (hl7, callback) ->
+  client = net.connect port: 3602, ->
+    client.write mllpStart + hl7.replace(/\n/g, '\r') + mllpEnd
+
+  response = new Buffer('')
+  client.on 'data', (chunk) ->
+    response += chunk
+    if chunk.toString().indexOf(mllpEnd.toString()) isnt -1
+      client.end()
+
+  client.on 'end', ->
+    if response.toString().indexOf("AA") isnt -1
+      callback true
+    else
+      callback false
 
 sendRepositoryRequest = (action, conf, reqBody, callback) ->
   options =
@@ -46,7 +66,6 @@ runTest = (testName, test, validator, conf, originalProvideRequest, body, callba
     else
       console.log "#{testName}:\x1b[32m Successful\x1b[0m"
       callback true
-
 
 provideAndRegister = (conf, reqBody, callback) -> sendRepositoryRequest actionPNR, conf, reqBody, callback
 
@@ -107,10 +126,10 @@ do ->
 
   conf =
     target: ops.args[0]
-    docUniqueId: "1.25.#{uuid.v4()}"
-    subUniqueId: "1.25.#{uuid.v4()}"
-    sourcePatId: "1.25.#{uuid.v4()}"
-    messageId: "1.25.#{uuid.v4()}"
+    docUniqueId: oidgen.random()
+    subUniqueId: oidgen.random()
+    sourcePatId: oidgen.random()
+    messageId: uuid.v4()
     firstName: eden.eve()
     lastName: 'Patient'
     repoUniqueId: ops['repo-unique-id'] ? defaultRepositoryUniqueId
@@ -119,7 +138,7 @@ do ->
 
   conf.auth = ops.auth
 
-  process = (doc) ->
+  processMsg = (doc) ->
     doc.replace /#{{docUniqueId}}/g, conf.docUniqueId
       .replace /#{{subUniqueId}}/g, conf.subUniqueId
       .replace /#{{sourcePatId}}/g, conf.sourcePatId
@@ -127,10 +146,23 @@ do ->
       .replace /#{{repoUniqueId}}/g, conf.repoUniqueId
       .replace /#{{firstName}}/g, conf.firstName
       .replace /#{{lastName}}/g, conf.lastName
+      .replace /#{{randomUUID}}/g, -> uuid.v4()
 
-  provideDoc = process fs.readFileSync('pnr-validAphpSampleFullSections.xml').toString()
-  retrieveDoc = process fs.readFileSync('retrieveDocumentSetb.xml').toString()
+  provideDoc = processMsg fs.readFileSync('pnr-minimalIC.xml').toString()
+  retrieveDoc = processMsg fs.readFileSync('retrieveDocumentSetb.xml').toString()
+  adt = processMsg fs.readFileSync('adt_a01.er7').toString()
 
-  runTest 'Provide and Register Document Set.b', provideAndRegister, isPnRSuccessful, conf, provideDoc, provideDoc, (success) ->
+  sendRegistyHL7 adt, (success) ->
     if success
-      runTest 'Retrieve Document Set.b', retrieveDocumentSet, isRetrieveSuccessful, conf, provideDoc, retrieveDoc, (success) ->
+      runTest 'Provide and Register Document Set.b', provideAndRegister, isPnRSuccessful, conf, provideDoc, provideDoc, (success) ->
+        if success
+          runTest 'Retrieve Document Set.b', retrieveDocumentSet, isRetrieveSuccessful, conf, provideDoc, retrieveDoc, (success) ->
+            if success
+              process.exit 0
+            else
+              process.exit 1
+        else
+          process.exit 1
+    else
+      console.log 'Failed to register a patient with the XDS.b registry'
+      process.exit 1
