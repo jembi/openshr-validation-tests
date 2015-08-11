@@ -138,7 +138,7 @@ do ->
 
   conf.auth = ops.auth
 
-  process = (doc) ->
+  processMsg = (doc) ->
     doc.replace /#{{docUniqueId}}/g, conf.docUniqueId
       .replace /#{{subUniqueId}}/g, conf.subUniqueId
       .replace /#{{sourcePatId}}/g, conf.sourcePatId
@@ -148,12 +148,21 @@ do ->
       .replace /#{{lastName}}/g, conf.lastName
       .replace /#{{randomUUID}}/g, -> uuid.v4()
 
-  provideDoc = process fs.readFileSync('pnr-minimalIC.xml').toString()
-  retrieveDoc = process fs.readFileSync('retrieveDocumentSetb.xml').toString()
-  adt = process fs.readFileSync('adt_a01.er7').toString()
+  provideDoc = processMsg fs.readFileSync('pnr-minimalIC.xml').toString()
+  retrieveDoc = processMsg fs.readFileSync('retrieveDocumentSetb.xml').toString()
+  adt = processMsg fs.readFileSync('adt_a01.er7').toString()
 
   sendRegistyHL7 adt, (success) ->
     if success
       runTest 'Provide and Register Document Set.b', provideAndRegister, isPnRSuccessful, conf, provideDoc, provideDoc, (success) ->
         if success
           runTest 'Retrieve Document Set.b', retrieveDocumentSet, isRetrieveSuccessful, conf, provideDoc, retrieveDoc, (success) ->
+            if success
+              process.exit 0
+            else
+              process.exit 1
+        else
+          process.exit 1
+    else
+      console.log 'Failed to register a patient with the XDS.b registry'
+      process.exit 1
