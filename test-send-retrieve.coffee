@@ -17,8 +17,10 @@ defaultRepositoryUniqueId = '1.19.6.24.109.42.1.5.1'
 mllpStart = new Buffer [0x0B]
 mllpEnd = new Buffer [0x1C, 0x0D]
 
-sendRegistyHL7 = (hl7, callback) ->
-  client = net.connect port: 3602, ->
+sendRegistyHL7 = (target, hl7, callback) ->
+  host = target.split(':')[0]
+  port = target.split(':')[1]
+  client = net.connect host: host, port: port, ->
     client.write mllpStart + hl7.replace(/\n/g, '\r') + mllpEnd
 
   response = new Buffer('')
@@ -119,6 +121,10 @@ do ->
       key: 'q'
       args: 1
       description: "The repository unique id to use. Default value is #{defaultRepositoryUniqueId}"
+    'pix-feed-host':
+      key: 'p'
+      args: 1
+      description: 'The PIX Feed server. Must take the form host:port. Defaults to localhost:3602'
 
   if not ops.args or ops.args.length is 0
     console.log "Must specify target server\n"
@@ -152,7 +158,8 @@ do ->
   retrieveDoc = processMsg fs.readFileSync('retrieveDocumentSetb.xml').toString()
   adt = processMsg fs.readFileSync('adt_a01.er7').toString()
 
-  sendRegistyHL7 adt, (success) ->
+  pixfeedHost = ops['pix-feed-host'] ? 'localhost:3602'
+  sendRegistyHL7 pixfeedHost, adt, (success) ->
     if success
       runTest 'Provide and Register Document Set.b', provideAndRegister, isPnRSuccessful, conf, provideDoc, provideDoc, (success) ->
         if success
