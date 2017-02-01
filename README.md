@@ -1,6 +1,7 @@
 # openshr-validation-tests
-Black-box validation tests for the OpenSHR
+Black-box validation tests for a Shared Health Record
 
+## XDS.b
 Usage:
 ```
 $ npm install
@@ -11,3 +12,6 @@ By default a pix feed message will be sent to localhost:3602, but this can be ch
 ```
 $ npm run test -- -p yourserver:3602 http://yourserver:8080/openmrs/ms/xdsrepository
 ```
+
+## MHD
+See the subfolder `mhd`
