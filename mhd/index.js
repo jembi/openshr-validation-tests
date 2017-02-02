@@ -130,6 +130,9 @@ const MHDScenario = (ops, headers) => {
     const cda = loadResource('CDA-APHP-1.xml', conf)
     conf.cdaBase64 = Buffer.from(cda).toString('base64')
 
+    const image = loadResource('Image-1.png', conf)
+    conf.imageBase64 = Buffer.from(image).toString('base64')
+
     const binary1 = loadResource('Binary-1.json', conf)
     const binary2 = loadResource('Binary-2.json', conf)
     const docRef1 = loadResource('DocumentReference-1.json', conf)
@@ -195,13 +198,24 @@ const MHDScenario = (ops, headers) => {
       }, (err, res, body) => {
         t.error(err, `POST ${ops.host}`)
         t.equals(res.statusCode, 200, 'status code should be 200')
+
         body = JSON.parse(body)
         t.equals(body.resourceType, 'Bundle', 'resource type should be Bundle')
         t.equals(body.type, 'transaction-response', 'bundle type should be \'transaction-response\'')
         t.equals(body.entry.length, 5, 'response should contain 5 entries')
         for (let e of body.entry) {
           // response.status is unbounded, so responses like '201 Created' are possible
-          t.equals(e.response.status.substr(0, 3), '201', 'entry response status should be 201')
+          // TODO OHIE-193
+          // t.equals(e.response.status.substr(0, 3), '201', 'entry response status should be 201')
+
+          if (e.response.location.indexOf('Binary') > -1) {
+            const ref = e.response.location.replace(new RegExp('.*(Binary/\\w+)/_history/.*'), '$1')
+            if (conf.binaryResource1) {
+              conf.binaryResource2 = ref
+            } else {
+              conf.binaryResource1 = ref
+            }
+          }
         }
         t.end()
         callback()
@@ -285,6 +299,41 @@ const MHDScenario = (ops, headers) => {
     })
   }
 
+  const fetchBinary = (t, path, expected) => {
+    const url = `${ops.host}/${path}`
+    return new Promise((resolve) => {
+      request({
+        url: url,
+        headers: headers
+      }, (err, res, body) => {
+        t.error(err, `GET ${url}`)
+        t.equals(res.statusCode, 200, 'response status code should be 200')
+
+        body = JSON.parse(body)
+        t.equals(body.resourceType, 'Binary', 'resource type should be Bundle')
+        t.equals(body.content, expected, 'resource should contain correct content')
+
+        resolve()
+      })
+    })
+  }
+
+  const iti68_retrieveDocument = (callback) => {
+    tap.test('ITI-68 Retrieve Document', {bail: true}, (t) => {
+      const promises = []
+
+      promises.push(fetchBinary(t, conf.binaryResource1, conf.cdaBase64))
+      promises.push(fetchBinary(t, conf.binaryResource2, conf.imageBase64))
+
+      // TODO OHIE-191
+
+      Promise.all(promises).then(() => {
+        t.end()
+        callback()
+      })
+    })
+  }
+
   return {
     init: (callback) => {
       console.log(`Executing MHD tests against: ${ops.host}`)
@@ -310,7 +359,7 @@ const MHDScenario = (ops, headers) => {
       console.log()
       console.log('Configuration:')
       for (let k in conf) {
-        if (k !== 'cdaBase64') {
+        if (k !== 'cdaBase64' && k !== 'imageBase64') {
           console.log(`${k}: ${chalk.cyan(conf[k])}`)
         }
       }
@@ -319,7 +368,9 @@ const MHDScenario = (ops, headers) => {
       iti65_provideDocumentBundle(() => {
         iti66_findDocumentManifests(() => {
           iti67_findDocumentReferences(() => {
-            callback()
+            iti68_retrieveDocument(() => {
+              callback()
+            })
           })
         })
       })
@@ -345,7 +396,7 @@ const runTests = (Scenario, ops, headers) => {
 (() => {
   const ops = stdio.getopt(appOps)
   const headers = {
-    // TODO add hearth support for application/json+fhir
+    // TODO OHIE-192
     // 'content-type': 'application/json+fhir'
     'content-type': 'application/json'
   }

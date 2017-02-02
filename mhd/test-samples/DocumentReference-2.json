@@ -46,7 +46,7 @@
   "content": [
     {
       "attachment": {
-        "contentType": "image/jpg",
+        "contentType": "image/png",
         "url": "{{binaryRef2}}"
       },
       "format": [
