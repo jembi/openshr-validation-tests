@@ -2,15 +2,21 @@
 
 ## Quick start
 ```
+npm install
+```
+([yarn](https://yarnpkg.com/) can also be used instead)
+
+Then to run against a Hearth server running on localhost with the default user:
+```
 npm start -- -a
 ```
 
-or
+Or to run against the public HAPI:
 ```
-yarn start -- -h http://fhirtest.uhn.ca/baseDstu2
+npm start -- -h http://fhirtest.uhn.ca/baseDstu2
 ```
 
-or
+To view all options:
 ```
 npm start -- --help
 ```
