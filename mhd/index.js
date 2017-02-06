@@ -205,8 +205,7 @@ const MHDScenario = (ops, headers) => {
         t.equals(body.entry.length, 5, 'response should contain 5 entries')
         for (let e of body.entry) {
           // response.status is unbounded, so responses like '201 Created' are possible
-          // TODO OHIE-193
-          // t.equals(e.response.status.substr(0, 3), '201', 'entry response status should be 201')
+          t.equals(e.response.status.substr(0, 3), '201', 'entry response status should be 201')
 
           if (e.response.location.indexOf('Binary') > -1) {
             const ref = e.response.location.replace(new RegExp('.*(Binary/\\w+)/_history/.*'), '$1')
