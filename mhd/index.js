@@ -395,9 +395,7 @@ const runTests = (Scenario, ops, headers) => {
 (() => {
   const ops = stdio.getopt(appOps)
   const headers = {
-    // TODO OHIE-192
-    // 'content-type': 'application/json+fhir'
-    'content-type': 'application/json'
+    'content-type': 'application/json+fhir'
   }
 
   if (ops.host[ops.length - 1] === '/') {
