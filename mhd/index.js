@@ -101,7 +101,7 @@ const post = (host, resourceType, headers, body, onSuccess) => {
     console.log(`${chalk.green('OK')} POST ${url}`)
     let reference
     if (res.headers.location) {
-      reference = res.headers.location.replace(new RegExp(`.*(${resourceType}/\\w+)/_history/.*`), '$1')
+      reference = res.headers.location.replace(new RegExp(`.*(${resourceType}/[\\w\\-]+)/_history/.*`), '$1')
     }
     onSuccess(reference, body)
   })
@@ -209,7 +209,7 @@ const MHDScenario = (ops, headers) => {
           // t.equals(e.response.status.substr(0, 3), '201', 'entry response status should be 201')
 
           if (e.response.location.indexOf('Binary') > -1) {
-            const ref = e.response.location.replace(new RegExp('.*(Binary/\\w+)/_history/.*'), '$1')
+            const ref = e.response.location.replace(new RegExp('.*(Binary/[\\w\\-]+)/_history/.*'), '$1')
             if (conf.binaryResource1) {
               conf.binaryResource2 = ref
             } else {
